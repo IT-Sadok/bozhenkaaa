@@ -1,4 +1,3 @@
-using LibraryManagement.LibraryManagement.Models.Entities;
 using LibraryManagement.LibraryManagement.Repositories;
 
 namespace LibraryManagement.LibraryManagement.Services;
