@@ -10,60 +10,83 @@ public class JsonDataRepository : IDataRepository
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
     
     private readonly List<Book> _booksCache = LoadAllFromFile();
+    
+    private readonly object _syncRoot = new();
 
     public List<Book> GetAllAvailableBooks()
     {
-        return _booksCache
-            .Where(book => book.BookStatus == BookStatus.Available)
-            .ToList();
+        lock (_syncRoot)
+        {
+            return _booksCache
+                .Where(book => book.BookStatus == BookStatus.Available)
+                .ToList();
+        }
     }
 
     public List<Book> GetAllBooksByAuthor(string author)
     {
-        return _booksCache
-            .Where(book => book.Author.Equals(author, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        lock (_syncRoot)
+        {
+            return _booksCache
+                .Where(book => book.Author.Equals(author, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
     }
 
     public Book? GetBookByTitle(string title)
     {
-        return _booksCache
-            .FirstOrDefault(book => book.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
-    }
-
-    public void AddBook(Book book)
-    {
-        _booksCache.Add(book);
-        SaveAllToFile();
-    }
-
-    public void UpdateBookByCode(string code, BookStatus bookStatus)
-    {
-        var bookToUpdate = _booksCache.FirstOrDefault(book => book.Code == code);
-        if (bookToUpdate == null)
+        lock (_syncRoot)
         {
-            throw new KeyNotFoundException($"Book with code '{code}' was not found.");
+            return _booksCache
+                .FirstOrDefault(book => book.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
         }
-        
-        bookToUpdate.BookStatus = bookStatus;
-        SaveAllToFile();
     }
 
     public bool DoesBookExistByCode(string code)
     {
-        return _booksCache.Any(book => book.Code == code);
+        lock (_syncRoot)
+        {
+            return _booksCache.Any(book => book.Code == code);
+        }
+    }
+
+    public void AddBook(Book book)
+    {
+        lock (_syncRoot)
+        {
+            _booksCache.Add(book);
+            SaveAllToFile();
+        }
+    }
+
+    public void UpdateBookByCode(string code, BookStatus bookStatus)
+    {
+        lock (_syncRoot)
+        {
+            var bookToUpdate = _booksCache.FirstOrDefault(book => book.Code == code);
+            if (bookToUpdate == null)
+            {
+                throw new KeyNotFoundException($"Book with code '{code}' was not found.");
+            }
+            
+            bookToUpdate.BookStatus = bookStatus;
+            SaveAllToFile();
+        }
     }
 
     public void DeleteBookByCode(string code)
     {
-        var bookToDelete = _booksCache.FirstOrDefault(book => book.Code == code);
-        if (bookToDelete == null)
+        lock (_syncRoot)
         {
-            return;
+            var bookToDelete = _booksCache.FirstOrDefault(book => book.Code == code);
+            if (bookToDelete == null)
+            {
+                return;
+            }
+            
+            _booksCache.Remove(bookToDelete);
+            SaveAllToFile();
         }
-        
-        _booksCache.Remove(bookToDelete);
-        SaveAllToFile();
     }
     
     private static List<Book> LoadAllFromFile()
