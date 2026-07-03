@@ -9,7 +9,7 @@ namespace LibraryManagement
 {
     internal static class Program
     {
-        private static void Main()
+        private static async Task Main()
         {
             var services = new ServiceCollection();
 
@@ -19,11 +19,12 @@ namespace LibraryManagement
 
             var serviceProvider = services.BuildServiceProvider();
             var bookService = serviceProvider.GetRequiredService<IBookManagerService>();
+            var bookValidator = serviceProvider.GetRequiredService<IBookValidator>();
 
-            RunMenu(bookService);
+            await RunMenuAsync(bookService, bookValidator);
         }
 
-        private static void RunMenu(IBookManagerService bookService)
+        private static async Task RunMenuAsync(IBookManagerService bookService,  IBookValidator bookValidator)
         {
             while (true)
             {
@@ -35,6 +36,7 @@ namespace LibraryManagement
                 Console.WriteLine("4. Get books by author");
                 Console.WriteLine("5. Get book by title");
                 Console.WriteLine("6. Get all available books");
+                Console.WriteLine("7. Run Stress Test (100 Threads)");
                 Console.WriteLine("0. Exit");
                 Console.Write("Choose what you want to do: ");
 
@@ -50,6 +52,7 @@ namespace LibraryManagement
                         case "4": ExecuteSearchByAuthor(bookService); break;
                         case "5": ExecuteSearchByTitle(bookService); break;
                         case "6": ExecuteShowAvailable(bookService); break;
+                        case "7": await ExecuteStressTestAsync(bookService, bookValidator); break;
                         case "0": return;
                         default: Console.WriteLine("Unknown command."); break;
                     }
@@ -70,6 +73,51 @@ namespace LibraryManagement
                 Console.WriteLine("Press any key to continue...");
                 Console.ReadKey();
             }
+        }
+
+        private static async Task ExecuteStressTestAsync(IBookManagerService service, IBookValidator bookValidator)
+        {
+            Console.WriteLine("Starting 101 concurrent tasks...");
+
+            const string testCode = "STRESS-100";
+
+            if (!bookValidator.DoesBookWithCodeExist(testCode))
+            {
+                service.AddBook(new Book
+                {
+                    Code = testCode,
+                    Title = "Concurrency Testing Book",
+                    Author = "Stress Bot",
+                    Year = DateTime.Now.Year,
+                    BookStatus = BookStatus.Available
+                });
+            }
+
+            var tasks = new Task[101];
+
+            for (var i = 0; i < 101; i++)
+            {
+                var taskId = i;
+
+                tasks[i] = Task.Run(() =>
+                {
+                    var newStatus = taskId % 2 == 0 ? BookStatus.Borrowed : BookStatus.Available;
+                    
+                    try
+                    {
+                        service.UpdateBookByCode(testCode, newStatus);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Task {taskId} failed: {ex.Message}");
+                    }
+                });
+            }
+
+            await Task.WhenAll(tasks);
+
+            var finalBook = service.GetBookByTitle("Concurrency Testing Book");
+            Console.WriteLine($"Final status of the test book: {finalBook.BookStatus}");
         }
 
         private static void ExecuteSearchByTitle(IBookManagerService service)
