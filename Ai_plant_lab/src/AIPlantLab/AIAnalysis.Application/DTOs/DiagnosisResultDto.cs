@@ -1,8 +1,12 @@
+using AIAnalysis.Domain.Enums;
+
 namespace AIAnalysis.Application.DTOs;
 
 public record DiagnosisResultDto(
-    string DetectedDisease,
+    Guid DiagnosisId,          // ID самого діагнозу
+    Guid? DetectedDiseaseId,   // ID хвороби з нашого довідника (null, якщо рослина здорова)
+    string DetectedDisease,    // Назва хвороби
     double ConfidenceScore,
     string Recommendations,
-    bool IsHealthy
+    HealthStatus Status        // Наш новий Enum статус
 );

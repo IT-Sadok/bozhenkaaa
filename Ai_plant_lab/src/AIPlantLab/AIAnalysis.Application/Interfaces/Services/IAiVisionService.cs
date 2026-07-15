@@ -1,10 +1,10 @@
 using AIAnalysis.Application.DTOs;
 using AIAnalysis.Domain.Common;
 
-namespace AIAnalysis.Application.Interfaces;
+namespace AIAnalysis.Application.Interfaces.Services;
 
 public interface IAiVisionService
 {
-    Task<Result<DiagnosisResultDto>> AnalyzePlantPhotoAsync(byte[] photoData,
+    Task<Result<AiAnalysisResponseDto>> AnalyzePlantPhotoAsync(byte[] photoData,
         CancellationToken cancellationToken = default);
 }

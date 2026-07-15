@@ -1,40 +1,51 @@
-﻿using AIAnalysis.Domain.Common;
+﻿using System.Diagnostics.CodeAnalysis;
+using AIAnalysis.Domain.Common;
+using AIAnalysis.Domain.Enums;
 using AIAnalysis.Domain.Events;
 
 namespace AIAnalysis.Domain.Entities;
 
 public sealed class PlantDiagnosis : Entity
 {
-    public Guid Id { get; }
+    public Guid Id { get; private init; }
     
-    public Guid ExperimentId { get; private set; } 
+    public required Guid ExperimentId { get; init; } 
     
-    public string ImageUrl { get; private set; }
+    public required string ImageUrl { get; init; }
     
-    public string? DetectedDisease { get; }
+    public Guid? DetectedDiseaseId { get; }
     
-    public double ConfidenceScore { get; private set; }
+    public Disease? DetectedDisease { get; private set; }
     
-    public string Recommendations { get; }
+    public required double ConfidenceScore { get; init; }
     
-    public DateTime CreatedAt { get; private set; }
+    public required string Recommendations { get; init; }
     
-    public bool IsHealthy { get; }
+    public DateTime CreatedAt { get; private init; }
+    
+    public required HealthStatus Status { get; init; }
 
-    public PlantDiagnosis(Guid experimentId, string imageUrl, string detectedDisease, double confidenceScore,
-        string recommendations, bool isHealthy)
+    [SetsRequiredMembers]
+    public PlantDiagnosis(
+        Guid experimentId,
+        string imageUrl,
+        Guid? detectedDiseaseId,
+        double confidenceScore,
+        string recommendations,
+        HealthStatus status)
     {
         Id = Guid.NewGuid();
         ExperimentId = experimentId;
         ImageUrl = imageUrl;
-        DetectedDisease = detectedDisease;
+        DetectedDiseaseId = detectedDiseaseId;
         ConfidenceScore = confidenceScore;
         Recommendations = recommendations;
-        IsHealthy = isHealthy;
+        Status = status;
         CreatedAt = DateTime.UtcNow;
-        if (!IsHealthy)
+
+        if (Status == HealthStatus.DiseaseDetected && DetectedDiseaseId.HasValue)
         {
-            AddDomainEvent(new DiseaseDetectedDomainEvent(Id, DetectedDisease, Recommendations));
+            AddDomainEvent(new DiseaseDetectedDomainEvent(Id, DetectedDiseaseId.Value.ToString(), Recommendations));
         }
     }
 }
