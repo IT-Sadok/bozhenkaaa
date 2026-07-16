@@ -14,8 +14,6 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
 
     public AnalyzePhotoCommandHandler(
         IAiVisionService aiVisionService,
-        IPlantDiagnosisRepository diagnosisRepository,
-        IDiseaseRepository diseaseRepository,
         IUnitOfWork unitOfWork)
     {
         _aiVisionService = aiVisionService;
