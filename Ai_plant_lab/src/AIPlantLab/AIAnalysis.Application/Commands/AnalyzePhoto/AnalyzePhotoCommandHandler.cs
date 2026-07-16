@@ -10,8 +10,6 @@ namespace AIAnalysis.Application.Commands.AnalyzePhoto;
 internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoCommand, Result<Guid>>
 {
     private readonly IAiVisionService _aiVisionService;
-    private readonly IPlantDiagnosisRepository _diagnosisRepository;
-    private readonly IDiseaseRepository _diseaseRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public AnalyzePhotoCommandHandler(
@@ -21,8 +19,6 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
         IUnitOfWork unitOfWork)
     {
         _aiVisionService = aiVisionService;
-        _diagnosisRepository = diagnosisRepository;
-        _diseaseRepository = diseaseRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -48,7 +44,7 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
             healthStatus
         );
 
-        _diagnosisRepository.Add(diagnosis);
+        _unitOfWork.Diagnoses.Add(diagnosis);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(diagnosis.Id);
@@ -71,7 +67,7 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
             return null;
         }
 
-        var diseaseRecord = await _diseaseRepository.GetByNameAsync(detectedDiseaseName, cancellationToken);
+        var diseaseRecord = await _unitOfWork.Diseases.GetByNameAsync(detectedDiseaseName, cancellationToken);
         return diseaseRecord?.Id;
     }
 }
