@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using AIAnalysis.API.Extensions;
 using AIAnalysis.Application.Commands.AnalyzePhoto;
 using MediatR;
@@ -7,17 +8,22 @@ namespace AIAnalysis.API.Endpoints;
 
 public static class AnalysisEndpoints
 {
+    private const string RoutePrefix = "api/analysis";
+    private const string TagName = "Analysis";
+    private const string AnalyzeVisionRoute = "vision";
+    private const string AnalyzeVisionEndpointName = "AnalyzeVision";
+    
     public static IEndpointRouteBuilder MapAnalysisEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/analysis")
-            .WithTags("Analysis");
+        var group = app.MapGroup(RoutePrefix)
+            .WithTags(TagName);
 
-        group.MapPost("vision", AnalyzeVisionAsync)
+        group.MapPost(AnalyzeVisionRoute, AnalyzeVisionAsync)
             .DisableAntiforgery()
-            .Accepts<IFormFile>("multipart/form-data")
+            .Accepts<IFormFile>(MediaTypeNames.Multipart.FormData)
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
-            .WithName("AnalyzeVision")
+            .WithName(AnalyzeVisionEndpointName)
             .WithOpenApi();
 
         return app;

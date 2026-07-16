@@ -28,39 +28,50 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
 
     public async Task<Result<Guid>> Handle(AnalyzePhotoCommand request, CancellationToken cancellationToken)
     {
-        var aiResult = await _aiVisionService.AnalyzePlantPhotoAsync(request.PhotoData, cancellationToken);
-        if (aiResult.IsFailure)
+        var analyzePlantPhotoResult = await _aiVisionService.AnalyzePlantPhotoAsync(request.PhotoData, cancellationToken);
+        if (analyzePlantPhotoResult.IsFailure)
         {
-            return Result<Guid>.ErrorResult(aiResult.Error);
+            return Result<Guid>.ErrorResult(analyzePlantPhotoResult.Error);
         }
 
-        var aiData = aiResult.Value;
+        var analyzedData = analyzePlantPhotoResult.Value;
 
-        if (!Enum.TryParse<HealthStatus>(aiData.Status, true, out var healthStatus))
-        {
-            healthStatus = HealthStatus.Suspicious;
-        }
-
-        Guid? diseaseId = null;
-        if (healthStatus == HealthStatus.DiseaseDetected && !string.IsNullOrWhiteSpace(aiData.DetectedDisease))
-        {
-            var diseaseRecord = await _diseaseRepository.GetByNameAsync(aiData.DetectedDisease, cancellationToken);
-            diseaseId = diseaseRecord?.Id;
-        }
+        var healthStatus = ParseHealthStatus(analyzedData.Status);
+        var diseaseId = await ResolveDiseaseIdAsync(healthStatus, analyzedData.DetectedDisease, cancellationToken);
 
         var diagnosis = new PlantDiagnosis(
             request.ExperimentId,
             "url_to_blob_storage_placeholder", // TODO: add saving to blob
             diseaseId,
-            aiData.ConfidenceScore,
-            aiData.Recommendations,
+            analyzedData.ConfidenceScore,
+            analyzedData.Recommendations,
             healthStatus
         );
 
         _diagnosisRepository.Add(diagnosis);
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(diagnosis.Id);
+    }
+
+    private static HealthStatus ParseHealthStatus(string? status)
+    {
+        return Enum.TryParse<HealthStatus>(status, true, out var result)
+            ? result
+            : HealthStatus.Suspicious;
+    }
+
+    private async Task<Guid?> ResolveDiseaseIdAsync(
+        HealthStatus status, 
+        string? detectedDiseaseName, 
+        CancellationToken cancellationToken)
+    {
+        if (status != HealthStatus.DiseaseDetected || string.IsNullOrWhiteSpace(detectedDiseaseName))
+        {
+            return null;
+        }
+
+        var diseaseRecord = await _diseaseRepository.GetByNameAsync(detectedDiseaseName, cancellationToken);
+        return diseaseRecord?.Id;
     }
 }
