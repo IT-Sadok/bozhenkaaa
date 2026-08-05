@@ -5,4 +5,6 @@ namespace AIAnalysis.Application.Interfaces.Repositories;
 public interface IDiseaseRepository
 {
     Task<Disease?> GetByNameAsync(string name, CancellationToken cancellationToken);
+    
+    void Add(Disease disease);
 }

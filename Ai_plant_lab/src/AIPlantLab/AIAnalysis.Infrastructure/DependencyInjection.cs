@@ -1,4 +1,3 @@
-using AIAnalysis.Application.Interfaces;
 using AIAnalysis.Application.Interfaces.Repositories;
 using AIAnalysis.Application.Interfaces.Services;
 using AIAnalysis.Infrastructure.AI;
@@ -6,10 +5,12 @@ using AIAnalysis.Infrastructure.Persistence;
 using AIAnalysis.Infrastructure.Persistence.Repositories;
 using Azure;
 using Azure.AI.OpenAI;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace AIAnalysis.Infrastructure;
 
@@ -17,12 +18,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        var connectionString = configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseVector(); 
+        var dataSource = dataSourceBuilder.Build();
 
         services.Configure<AzureOpenAiSettings>(configuration.GetSection(AzureOpenAiSettings.SectionName));
         
-        services.AddSingleton(provider =>
+        services.AddScoped(provider =>
         {
             var settings = provider.GetRequiredService<IOptionsSnapshot<AzureOpenAiSettings>>().Value;
 
@@ -34,8 +39,53 @@ public static class DependencyInjection
                          
             return new AzureOpenAIClient(new Uri(settings.Endpoint), new AzureKeyCredential(settings.ApiKey));
         });
+        
+        services.AddDbContext<AppDbContext>((sp, options) =>
+        {
+            options.UseNpgsql(dataSource, npgsqlOptions =>
+            {
+                npgsqlOptions.UseVector();
+            });
+        });
 
-        services.AddScoped<IAiVisionService, AzureOpenAiVisionService>();
+        services.AddMassTransit(x =>
+        {
+            x.AddEntityFrameworkOutbox<AppDbContext>(o =>
+            {
+                o.UsePostgres();
+                o.UseBusOutbox();
+
+                o.QueryDelay = TimeSpan.FromSeconds(10);
+            });
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host("localhost", "/", h =>
+                {
+                    h.Username("guest");
+                    h.Password("guest");
+                });
+
+                cfg.ConfigureEndpoints(context);
+            });
+            /*
+             x.UsingAzureServiceBus((context, cfg) =>{
+                cfg.Host(configuration.GetConnectionString("AzureServiceBus"));
+                cfg.ConfigureEndpoints(context);
+            });
+            */
+        });
+
+        // for testing purpose
+        var useMockAi = configuration.GetValue<bool>("UseMockAi");
+        if (useMockAi)
+        {
+            services.AddScoped<IAiVisionService, FakeAiVisionService>();
+        }
+        else
+        {
+            services.AddScoped<IAiVisionService, AzureOpenAiVisionService>();
+        }
         
         services.AddScoped<IPlantDiagnosisRepository, PlantDiagnosisRepository>();
         services.AddScoped<IDiseaseRepository, DiseaseRepository>();

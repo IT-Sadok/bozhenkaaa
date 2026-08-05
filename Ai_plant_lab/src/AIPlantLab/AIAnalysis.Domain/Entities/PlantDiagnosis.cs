@@ -13,7 +13,7 @@ public sealed class PlantDiagnosis : Entity
     
     public required string ImageUrl { get; init; }
     
-    public Guid? DetectedDiseaseId { get; }
+    public Guid? DetectedDiseaseId { get; private init; }
     
     public Disease? DetectedDisease { get; private set; }
     
@@ -24,6 +24,10 @@ public sealed class PlantDiagnosis : Entity
     public DateTime CreatedAt { get; private init; }
     
     public required HealthStatus Status { get; init; }
+    
+    private PlantDiagnosis() 
+    { 
+    }
 
     [SetsRequiredMembers]
     public PlantDiagnosis(
@@ -32,7 +36,8 @@ public sealed class PlantDiagnosis : Entity
         Guid? detectedDiseaseId,
         double confidenceScore,
         string recommendations,
-        HealthStatus status)
+        HealthStatus status, 
+        Disease? detectedDisease)
     {
         Id = Guid.NewGuid();
         ExperimentId = experimentId;
@@ -41,11 +46,20 @@ public sealed class PlantDiagnosis : Entity
         ConfidenceScore = confidenceScore;
         Recommendations = recommendations;
         Status = status;
+        DetectedDisease = detectedDisease;
         CreatedAt = DateTime.UtcNow;
 
         if (Status == HealthStatus.DiseaseDetected && DetectedDiseaseId.HasValue)
         {
-            AddDomainEvent(new DiseaseDetectedDomainEvent(Id, DetectedDiseaseId.Value.ToString(), Recommendations));
+            AddDomainEvent(new DiseaseDetectedEvent(
+                DiagnosisId: Id,
+                ExperimentId: ExperimentId,
+                DetectedDiseaseId: DetectedDiseaseId.Value,
+                DiseaseName: DetectedDisease?.Name ?? "Unknown Disease",
+                Recommendations: Recommendations,
+                IsContagious: DetectedDisease?.IsContagious ?? false,
+                LethalityIndex: DetectedDisease?.LethalityIndex ?? 0
+            ));
         }
     }
 }

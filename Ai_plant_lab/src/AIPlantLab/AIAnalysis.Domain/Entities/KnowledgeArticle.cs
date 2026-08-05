@@ -12,6 +12,10 @@ public sealed class KnowledgeArticle
     
     public required ReadOnlyMemory<float> Embedding { get; init; }
 
+    private KnowledgeArticle()
+    {
+    }
+
     public KnowledgeArticle(
         string diseaseName,
         string description,

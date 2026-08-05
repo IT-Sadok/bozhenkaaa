@@ -29,17 +29,18 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
         }
 
         var analyzedData = analyzePlantPhotoResult.Value;
-
+        
         var healthStatus = ParseHealthStatus(analyzedData.Status);
-        var diseaseId = await ResolveDiseaseIdAsync(healthStatus, analyzedData.DetectedDisease, cancellationToken);
+        var disease = await ResolveDiseaseAsync(healthStatus, analyzedData.DetectedDisease, cancellationToken);
 
         var diagnosis = new PlantDiagnosis(
-            request.ExperimentId,
-            "url_to_blob_storage_placeholder", // TODO: add saving to blob
-            diseaseId,
-            analyzedData.ConfidenceScore,
-            analyzedData.Recommendations,
-            healthStatus
+            experimentId: request.ExperimentId,
+            imageUrl: "url_to_blob_storage_placeholder",
+            detectedDiseaseId: disease?.Id,
+            confidenceScore: analyzedData.ConfidenceScore,
+            recommendations: analyzedData.Recommendations,
+            status: healthStatus,
+            detectedDisease: disease
         );
 
         _unitOfWork.Diagnoses.Add(diagnosis);
@@ -55,7 +56,7 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
             : HealthStatus.Suspicious;
     }
 
-    private async Task<Guid?> ResolveDiseaseIdAsync(
+    private async Task<Disease?> ResolveDiseaseAsync(
         HealthStatus status, 
         string? detectedDiseaseName, 
         CancellationToken cancellationToken)
@@ -64,8 +65,24 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
         {
             return null;
         }
+    
+        var diseaseEntity = await _unitOfWork.Diseases.GetByNameAsync(detectedDiseaseName, cancellationToken);
+    
+        if (diseaseEntity == null)
+        {
+            // todo: expand
+            diseaseEntity = new Disease(
+                name: detectedDiseaseName,
+                scientificName: "Unknown",
+                description: "Auto-generated from AI analysis",
+                defaultRecommendations: "See specific AI analysis recommendations.",
+                isContagious: false, 
+                lethalityIndex: 1
+            );
 
-        var diseaseRecord = await _unitOfWork.Diseases.GetByNameAsync(detectedDiseaseName, cancellationToken);
-        return diseaseRecord?.Id;
+            _unitOfWork.Diseases.Add(diseaseEntity); 
+        }
+
+        return diseaseEntity;
     }
 }
