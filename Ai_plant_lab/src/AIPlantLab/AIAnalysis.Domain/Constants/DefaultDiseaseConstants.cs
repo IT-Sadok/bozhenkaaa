@@ -1,6 +1,6 @@
 namespace AIAnalysis.Domain.Constants;
 
-public class DefaultDiseaseConstants
+public static class DefaultDiseaseConstants
 {
     public const string DefaultScientificName = "Unknown";
     public const string DefaultDescription = "Auto-generated from AI analysis";

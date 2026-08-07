@@ -1,12 +1,10 @@
 using AIAnalysis.Application.Interfaces.Repositories;
-using MassTransit;
 
 namespace AIAnalysis.Infrastructure.Persistence;
 
 public sealed class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _dbContext;
-    private readonly IPublishEndpoint _publishEndpoint;
 
     public IPlantDiagnosisRepository Diagnoses { get; }
     public IDiseaseRepository Diseases { get; }
@@ -14,12 +12,11 @@ public sealed class UnitOfWork : IUnitOfWork
     public UnitOfWork(
         AppDbContext dbContext,
         IPlantDiagnosisRepository diagnoses,
-        IDiseaseRepository diseases, IPublishEndpoint publishEndpoint)
+        IDiseaseRepository diseases)
     {
         _dbContext = dbContext;
         Diagnoses = diagnoses;
         Diseases = diseases;
-        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
