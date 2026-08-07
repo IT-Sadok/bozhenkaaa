@@ -2,6 +2,7 @@ using AIAnalysis.Application.Interfaces.Repositories;
 using AIAnalysis.Application.Interfaces.Services;
 using AIAnalysis.Infrastructure.AI;
 using AIAnalysis.Infrastructure.Persistence;
+using AIAnalysis.Infrastructure.Persistence.Interceptors;
 using AIAnalysis.Infrastructure.Persistence.Repositories;
 using Azure;
 using Azure.AI.OpenAI;
@@ -40,12 +41,13 @@ public static class DependencyInjection
             return new AzureOpenAIClient(new Uri(settings.Endpoint), new AzureKeyCredential(settings.ApiKey));
         });
         
-        services.AddDbContext<AppDbContext>((sp, options) =>
+        services.AddDbContext<AppDbContext>((_, options) =>
         {
             options.UseNpgsql(dataSource, npgsqlOptions =>
             {
                 npgsqlOptions.UseVector();
             });
+            options.AddInterceptors(new DomainEventsPublishInterceptor());
         });
 
         services.AddMassTransit(x =>
@@ -68,15 +70,8 @@ public static class DependencyInjection
 
                 cfg.ConfigureEndpoints(context);
             });
-            /*
-             x.UsingAzureServiceBus((context, cfg) =>{
-                cfg.Host(configuration.GetConnectionString("AzureServiceBus"));
-                cfg.ConfigureEndpoints(context);
-            });
-            */
         });
 
-        // for testing purpose
         var useMockAi = configuration.GetValue<bool>("UseMockAi");
         if (useMockAi)
         {

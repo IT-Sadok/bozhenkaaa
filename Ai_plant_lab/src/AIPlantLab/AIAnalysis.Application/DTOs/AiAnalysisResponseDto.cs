@@ -1,10 +1,10 @@
+using AIAnalysis.Domain.Enums;
+
 namespace AIAnalysis.Application.DTOs;
 
-public record AiAnalysisResponseDto(  
-    string DetectedDisease, 
+public record AiAnalysisResponseDto(
+    DiseaseDetailsDto? DetectedDisease, 
     double ConfidenceScore, 
     string Recommendations,
-    string Status,
-    bool IsContagious,
-    decimal LethalityIndex
+    HealthStatus Status
 );

@@ -30,7 +30,7 @@ public sealed class Disease : Entity
         string description,
         string defaultRecommendations,
         bool isContagious = false,
-        int lethalityIndex = 1)
+        decimal lethalityIndex = 0)
     {
         Id = Guid.NewGuid();
         Name = name;

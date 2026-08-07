@@ -1,6 +1,8 @@
+using AIAnalysis.Application.DTOs;
 using AIAnalysis.Application.Interfaces.Repositories;
 using AIAnalysis.Application.Interfaces.Services;
 using AIAnalysis.Domain.Common;
+using AIAnalysis.Domain.Constants;
 using AIAnalysis.Domain.Entities;
 using AIAnalysis.Domain.Enums;
 using MediatR;
@@ -30,7 +32,7 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
 
         var analyzedData = analyzePlantPhotoResult.Value;
         
-        var healthStatus = ParseHealthStatus(analyzedData.Status);
+        var healthStatus = analyzedData.Status;
         var disease = await ResolveDiseaseAsync(healthStatus, analyzedData.DetectedDisease, cancellationToken);
 
         var diagnosis = new PlantDiagnosis(
@@ -49,35 +51,28 @@ internal sealed class AnalyzePhotoCommandHandler : IRequestHandler<AnalyzePhotoC
         return Result<Guid>.Success(diagnosis.Id);
     }
 
-    private static HealthStatus ParseHealthStatus(string? status)
-    {
-        return Enum.TryParse<HealthStatus>(status, true, out var result)
-            ? result
-            : HealthStatus.Suspicious;
-    }
-
     private async Task<Disease?> ResolveDiseaseAsync(
         HealthStatus status, 
-        string? detectedDiseaseName, 
+        DiseaseDetailsDto? detectedDisease, 
         CancellationToken cancellationToken)
     {
-        if (status != HealthStatus.DiseaseDetected || string.IsNullOrWhiteSpace(detectedDiseaseName))
+        if (status != HealthStatus.DiseaseDetected || detectedDisease == null ||
+            string.IsNullOrWhiteSpace(detectedDisease.Name))
         {
             return null;
         }
-    
-        var diseaseEntity = await _unitOfWork.Diseases.GetByNameAsync(detectedDiseaseName, cancellationToken);
-    
+
+        var diseaseEntity = await _unitOfWork.Diseases.GetByNameAsync(detectedDisease.Name, cancellationToken);
+
         if (diseaseEntity == null)
         {
-            // todo: expand
             diseaseEntity = new Disease(
-                name: detectedDiseaseName,
-                scientificName: "Unknown",
-                description: "Auto-generated from AI analysis",
-                defaultRecommendations: "See specific AI analysis recommendations.",
-                isContagious: false, 
-                lethalityIndex: 1
+                name: detectedDisease.Name,
+                scientificName: DefaultDiseaseConstants.DefaultScientificName,
+                description: DefaultDiseaseConstants.DefaultDescription,
+                defaultRecommendations: DefaultDiseaseConstants.DefaultRecommendations,
+                isContagious: detectedDisease.IsContagious,
+                lethalityIndex: detectedDisease.LethalityIndex 
             );
 
             _unitOfWork.Diseases.Add(diseaseEntity); 

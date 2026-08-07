@@ -1,5 +1,4 @@
 using AIAnalysis.Application.Interfaces.Repositories;
-using AIAnalysis.Domain.Common;
 using MassTransit;
 
 namespace AIAnalysis.Infrastructure.Persistence;
@@ -25,24 +24,6 @@ public sealed class UnitOfWork : IUnitOfWork
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var domainEvents = _dbContext.ChangeTracker
-            .Entries<Entity>()
-            .Select(e => e.Entity)
-            .Where(e => e.DomainEvents.Any())
-            .SelectMany(e => {
-                var events = e.DomainEvents.ToList();
-                e.ClearDomainEvents();
-                return events;
-            })
-            .ToList();
-        
-        foreach (var domainEvent in domainEvents)
-        {
-            await _publishEndpoint.Publish(domainEvent, cancellationToken);
-        }
-        
-        var result = await _dbContext.SaveChangesAsync(cancellationToken);
-        
-        return result;
+        return await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
