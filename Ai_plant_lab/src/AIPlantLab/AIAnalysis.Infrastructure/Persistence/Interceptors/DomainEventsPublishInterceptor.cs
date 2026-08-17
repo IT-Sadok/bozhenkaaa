@@ -28,6 +28,8 @@ public class DomainEventsPublishInterceptor : SaveChangesInterceptor
 
         if (domainEvents.Count != 0)
         {
+            // TODO: change To IMediatr
+            // add new handler for domain event and there publish integration event
             var publishEndpoint = dbContext.GetService<IPublishEndpoint>();
 
             foreach (var domainEvent in domainEvents)
