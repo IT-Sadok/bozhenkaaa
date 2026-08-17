@@ -1,5 +1,5 @@
-using System.Net.Mime;
 using AIAnalysis.API.Extensions;
+using AIAnalysis.API.Models;
 using AIAnalysis.Application.Commands.AnalyzePhoto;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,6 @@ public static class AnalysisEndpoints
 
         group.MapPost(AnalyzeVisionRoute, AnalyzeVisionAsync)
             .DisableAntiforgery()
-            .Accepts<IFormFile>(MediaTypeNames.Multipart.FormData)
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .WithName(AnalyzeVisionEndpointName)
@@ -30,14 +29,13 @@ public static class AnalysisEndpoints
     }
     
     private static async Task<IResult> AnalyzeVisionAsync(
-        IFormFile file,
-        [FromQuery] Guid experimentId,
+        [FromForm] AnalyzeVisionRequestDto request,
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var photoBytes = await file.ReadAsBytesAsync(cancellationToken);
+        var photoBytes = await request.File.ReadAsBytesAsync(cancellationToken);
 
-        var command = new AnalyzePhotoCommand(experimentId, photoBytes);
+        var command = new AnalyzePhotoCommand(request.ExperimentId, photoBytes);
         var result = await sender.Send(command, cancellationToken);
 
         return result.IsSuccess

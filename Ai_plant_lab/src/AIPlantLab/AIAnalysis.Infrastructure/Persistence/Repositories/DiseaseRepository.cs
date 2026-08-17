@@ -18,4 +18,9 @@ public sealed class DiseaseRepository : IDiseaseRepository
         return await _dbContext.Diseases
             .FirstOrDefaultAsync(d => d.Name == name, cancellationToken);
     }
+    
+    public void Add(Disease disease)
+    {
+        _dbContext.Diseases.Add(disease);
+    }
 }
