@@ -1,3 +1,4 @@
+using Experiments.Application.Common;
 using Experiments.Domain.Entities;
 
 namespace Experiments.Application.Interfaces.Repositories;
@@ -8,7 +9,7 @@ public interface IExperimentRepository
 
     void Add(Experiment experiment);
 
-    Task<(IReadOnlyList<Experiment> Items, int TotalCount)> ListAsync(
+    Task<PagedResult<Experiment>> ListAsync(
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);

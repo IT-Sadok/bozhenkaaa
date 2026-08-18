@@ -32,7 +32,7 @@ public class ExperimentEntityConfiguration : IEntityTypeConfiguration<Experiment
 
         builder.OwnsOne(e => e.Configuration, config =>
         {
-            config.Property(c => c.LightHoursPerDay).HasColumnName("light_hours_per_day");
+            config.Property(c => c.LightHoursPerDay).HasColumnName("light_hours_per_day").HasColumnType("numeric");
             config.Property(c => c.WateringIntervalDays).HasColumnName("watering_interval_days");
             config.Property(c => c.TargetTemperatureCelsius).HasColumnName("target_temperature_celsius");
             config.Property(c => c.Notes).HasColumnName("configuration_notes").HasMaxLength(2000);

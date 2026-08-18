@@ -5,6 +5,7 @@ using Experiments.Application.Commands.ConfigureExperiment;
 using Experiments.Application.Commands.CreateExperiment;
 using Experiments.Application.Commands.FinishExperiment;
 using Experiments.Application.Commands.StartExperiment;
+using Experiments.Application.Common;
 using Experiments.Application.DTOs;
 using Experiments.Application.Queries.GetExperimentById;
 using Experiments.Application.Queries.ListExperiments;
@@ -117,7 +118,7 @@ public static class ExperimentEndpoints
             return Results.Created($"{RoutePrefix}/{id}/plant-groups/{result.Value}", new { PlantGroupId = result.Value });
         }
 
-        return result.Error.MapNotFoundOrBadRequest();
+        return result.MapFailure();
     }
 
     private static async Task<IResult> StartExperimentAsync(
@@ -147,7 +148,7 @@ public static class ExperimentEndpoints
 
         return result.IsSuccess
             ? Results.Ok(result.Value)
-            : Results.NotFound(new { result.Error });
+            : result.MapFailure();
     }
 
     private static async Task<IResult> ListExperimentsAsync(

@@ -1,19 +1,21 @@
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Common;
-using Experiments.Domain.Entities;
+using Experiments.Domain.Services;
 using MediatR;
 
 namespace Experiments.Application.Commands.CreateExperiment;
 
-internal sealed class CreateExperimentCommandHandler(IUnitOfWork unitOfWork)
+internal sealed class CreateExperimentCommandHandler(
+    IUnitOfWork unitOfWork,
+    IExperimentService experimentService)
     : IRequestHandler<CreateExperimentCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateExperimentCommand request, CancellationToken cancellationToken)
     {
-        var createResult = Experiment.Create(request.Name, request.Description);
+        var createResult = experimentService.Create(request.Name, request.Description);
         if (createResult.IsFailure)
         {
-            return Result<Guid>.ErrorResult(createResult.Error);
+            return Result<Guid>.Failure(createResult.Error);
         }
 
         var experiment = createResult.Value!;

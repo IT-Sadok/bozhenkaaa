@@ -1,4 +1,5 @@
 using System.Reflection;
+using Experiments.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Experiments.Application;
@@ -10,7 +11,7 @@ public static class DependencyInjection
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-        services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
+        services.AddScoped<IExperimentService, ExperimentService>();
 
         return services;
     }

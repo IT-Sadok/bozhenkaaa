@@ -8,7 +8,9 @@ public class Result
 
     public string Error { get; }
 
-    private Result(bool isSuccess, string error)
+    public string? Source { get; }
+
+    private Result(bool isSuccess, string error, string? source = null)
     {
         switch (isSuccess)
         {
@@ -20,11 +22,12 @@ public class Result
 
         IsSuccess = isSuccess;
         Error = error;
+        Source = source;
     }
 
     public static Result Success() => new(true, string.Empty);
 
-    public static Result ErrorResult(string error) => new(false, error);
+    public static Result Failure(string message, string? source = null) => new(false, message, source);
 }
 
 public class Result<T>
@@ -37,7 +40,9 @@ public class Result<T>
 
     public string Error { get; }
 
-    private Result(bool isSuccess, T? value, string error)
+    public string? Source { get; }
+
+    private Result(bool isSuccess, T? value, string error, string? source = null)
     {
         switch (isSuccess)
         {
@@ -50,9 +55,10 @@ public class Result<T>
         IsSuccess = isSuccess;
         Value = value;
         Error = error;
+        Source = source;
     }
 
     public static Result<T> Success(T value) => new(true, value, string.Empty);
 
-    public static Result<T> ErrorResult(string error) => new(false, default, error);
+    public static Result<T> Failure(string message, string? source = null) => new(false, default, message, source);
 }

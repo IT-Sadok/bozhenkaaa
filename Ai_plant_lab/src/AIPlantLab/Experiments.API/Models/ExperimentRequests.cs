@@ -3,7 +3,7 @@ namespace Experiments.API.Models;
 public sealed record CreateExperimentRequest(string Name, string? Description);
 
 public sealed record ConfigureExperimentRequest(
-    int LightHoursPerDay,
+    decimal LightHoursPerDay,
     int WateringIntervalDays,
     decimal TargetTemperatureCelsius,
     string? Notes);

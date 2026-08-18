@@ -1,7 +1,7 @@
 namespace Experiments.Domain.ValueObjects;
 
 public sealed record ExperimentConfiguration(
-    int LightHoursPerDay,
+    decimal LightHoursPerDay,
     int WateringIntervalDays,
     decimal TargetTemperatureCelsius,
     string? Notes);

@@ -1,3 +1,4 @@
+using Experiments.Application.Common;
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ public sealed class ExperimentRepository(AppDbContext dbContext) : IExperimentRe
         dbContext.Experiments.Add(experiment);
     }
 
-    public async Task<(IReadOnlyList<Experiment> Items, int TotalCount)> ListAsync(
+    public async Task<PagedResult<Experiment>> ListAsync(
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -34,6 +35,12 @@ public sealed class ExperimentRepository(AppDbContext dbContext) : IExperimentRe
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return (items, totalCount);
+        return new PagedResult<Experiment>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 }

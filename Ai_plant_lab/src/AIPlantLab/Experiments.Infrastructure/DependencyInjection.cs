@@ -22,6 +22,9 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
 
+        var rabbitMqSettings = configuration.GetSection(RabbitMqSettings.SectionName).Get<RabbitMqSettings>()
+            ?? new RabbitMqSettings();
+
         services.AddMassTransit(x =>
         {
             x.AddEntityFrameworkOutbox<AppDbContext>(o =>
@@ -33,10 +36,10 @@ public static class DependencyInjection
 
             x.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host("localhost", "/", h =>
+                cfg.Host(rabbitMqSettings.Host, rabbitMqSettings.VirtualHost, h =>
                 {
-                    h.Username("guest");
-                    h.Password("guest");
+                    h.Username(rabbitMqSettings.Username);
+                    h.Password(rabbitMqSettings.Password);
                 });
 
                 cfg.ConfigureEndpoints(context);

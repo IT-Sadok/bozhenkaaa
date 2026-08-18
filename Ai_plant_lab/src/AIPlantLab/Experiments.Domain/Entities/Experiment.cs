@@ -27,17 +27,14 @@ public sealed class Experiment : Entity
 
     public IReadOnlyCollection<PlantGroup> PlantGroups => _plantGroups.AsReadOnly();
 
+    public int PlantGroupCount => _plantGroups.Count;
+
     private Experiment()
     {
     }
 
-    public static Result<Experiment> Create(string name, string? description)
+    internal static Experiment CreateNew(string name, string? description)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Result<Experiment>.ErrorResult("Experiment name is required.");
-        }
-
         var experiment = new Experiment
         {
             Id = Guid.NewGuid(),
@@ -52,106 +49,38 @@ public sealed class Experiment : Entity
             experiment.Name,
             experiment.Description));
 
-        return Result<Experiment>.Success(experiment);
+        return experiment;
     }
 
-    public Result Configure(ExperimentConfiguration configuration)
+    internal void SetConfigured(ExperimentConfiguration configuration)
     {
-        if (Status != ExperimentStatus.Draft)
-        {
-            return Result.ErrorResult("Experiment can only be configured while in Draft status.");
-        }
-
-        if (configuration.LightHoursPerDay <= 0)
-        {
-            return Result.ErrorResult("Light hours per day must be greater than zero.");
-        }
-
-        if (configuration.WateringIntervalDays <= 0)
-        {
-            return Result.ErrorResult("Watering interval must be greater than zero.");
-        }
-
         Configuration = configuration;
         Status = ExperimentStatus.Configured;
-
         AddDomainEvent(new ExperimentConfiguredDomainEvent(Id, configuration));
-
-        return Result.Success();
     }
 
-    public Result<PlantGroup> AddPlantGroup(string name, string species, int plantCount)
+    internal void AddPlantGroup(PlantGroup plantGroup)
     {
-        if (Status is ExperimentStatus.Running or ExperimentStatus.Finished)
-        {
-            return Result<PlantGroup>.ErrorResult("Cannot add plant groups to a running or finished experiment.");
-        }
-
-        if (Status is not (ExperimentStatus.Draft or ExperimentStatus.Configured))
-        {
-            return Result<PlantGroup>.ErrorResult("Plant groups can only be added while the experiment is Draft or Configured.");
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Result<PlantGroup>.ErrorResult("Plant group name is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(species))
-        {
-            return Result<PlantGroup>.ErrorResult("Species is required.");
-        }
-
-        if (plantCount <= 0)
-        {
-            return Result<PlantGroup>.ErrorResult("Plant count must be greater than zero.");
-        }
-
-        var plantGroup = PlantGroup.Create(Id, name, species, plantCount);
         _plantGroups.Add(plantGroup);
-
         AddDomainEvent(new PlantGroupAddedDomainEvent(
             Id,
             plantGroup.Id,
             plantGroup.Name,
             plantGroup.Species,
             plantGroup.PlantCount));
-
-        return Result<PlantGroup>.Success(plantGroup);
     }
 
-    public Result Start()
+    internal void SetRunning(DateTime startedAt)
     {
-        if (Status != ExperimentStatus.Configured)
-        {
-            return Result.ErrorResult("Experiment must be configured before it can be started.");
-        }
-
-        if (_plantGroups.Count == 0)
-        {
-            return Result.ErrorResult("At least one plant group is required to start the experiment.");
-        }
-
         Status = ExperimentStatus.Running;
-        StartedAt = DateTime.UtcNow;
-
-        AddDomainEvent(new ExperimentStartedDomainEvent(Id, StartedAt.Value));
-
-        return Result.Success();
+        StartedAt = startedAt;
+        AddDomainEvent(new ExperimentStartedDomainEvent(Id, startedAt));
     }
 
-    public Result Finish()
+    internal void SetFinished(DateTime finishedAt)
     {
-        if (Status != ExperimentStatus.Running)
-        {
-            return Result.ErrorResult("Only running experiments can be finished.");
-        }
-
         Status = ExperimentStatus.Finished;
-        FinishedAt = DateTime.UtcNow;
-
-        AddDomainEvent(new ExperimentFinishedDomainEvent(Id, FinishedAt.Value));
-
-        return Result.Success();
+        FinishedAt = finishedAt;
+        AddDomainEvent(new ExperimentFinishedDomainEvent(Id, finishedAt));
     }
 }
