@@ -1,24 +1,31 @@
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Common;
-using Experiments.Domain.Constants;
 using Experiments.Domain.Entities;
-using Experiments.Domain.Services;
+using Experiments.Domain.Enums;
+using Experiments.Domain.Events;
 using Experiments.Domain.ValueObjects;
+using FluentValidation;
 using MediatR;
 
 namespace Experiments.Application.Commands.ConfigureExperiment;
 
 internal sealed class ConfigureExperimentCommandHandler(
-    IUnitOfWork unitOfWork,
-    IExperimentService experimentService)
+    IValidator<ConfigureExperimentCommand> validator,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<ConfigureExperimentCommand, Result>
 {
     public async Task<Result> Handle(ConfigureExperimentCommand request, CancellationToken cancellationToken)
     {
         var experiment = await unitOfWork.Experiments.GetByIdAsync(request.ExperimentId, cancellationToken);
-        if (experiment is null)
+
+        var context = new ValidationContext<ConfigureExperimentCommand>(request);
+        context.RootContextData[nameof(Experiment)] = experiment;
+
+        var validation = await validator.ValidateAsync(context, cancellationToken);
+        if (!validation.IsValid)
         {
-            return Result.Failure(ValidationMessages.NotFound, source: nameof(Experiment));
+            var error = validation.Errors[0];
+            return Result.Failure(error.ErrorMessage, error.CustomState as string);
         }
 
         var configuration = new ExperimentConfiguration(
@@ -27,11 +34,9 @@ internal sealed class ConfigureExperimentCommandHandler(
             request.Configuration.TargetTemperatureCelsius,
             request.Configuration.Notes);
 
-        var configureResult = experimentService.Configure(experiment, configuration);
-        if (configureResult.IsFailure)
-        {
-            return configureResult;
-        }
+        experiment!.Configuration = configuration;
+        experiment.Status = ExperimentStatus.Configured;
+        experiment.RaiseDomainEvent(new ExperimentConfiguredDomainEvent(experiment.Id, configuration));
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

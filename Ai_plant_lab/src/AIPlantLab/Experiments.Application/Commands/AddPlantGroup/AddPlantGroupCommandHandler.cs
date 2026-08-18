@@ -1,38 +1,50 @@
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Common;
-using Experiments.Domain.Constants;
 using Experiments.Domain.Entities;
-using Experiments.Domain.Services;
+using Experiments.Domain.Events;
+using FluentValidation;
 using MediatR;
 
 namespace Experiments.Application.Commands.AddPlantGroup;
 
 internal sealed class AddPlantGroupCommandHandler(
-    IUnitOfWork unitOfWork,
-    IExperimentService experimentService)
+    IValidator<AddPlantGroupCommand> validator,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<AddPlantGroupCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(AddPlantGroupCommand request, CancellationToken cancellationToken)
     {
         var experiment = await unitOfWork.Experiments.GetByIdAsync(request.ExperimentId, cancellationToken);
-        if (experiment is null)
+
+        var context = new ValidationContext<AddPlantGroupCommand>(request);
+        context.RootContextData[nameof(Experiment)] = experiment;
+
+        var validation = await validator.ValidateAsync(context, cancellationToken);
+        if (!validation.IsValid)
         {
-            return Result<Guid>.Failure(ValidationMessages.NotFound, source: nameof(Experiment));
+            var error = validation.Errors[0];
+            return Result<Guid>.Failure(error.ErrorMessage, error.CustomState as string);
         }
 
-        var addResult = experimentService.AddPlantGroup(
-            experiment,
-            request.Name,
-            request.Species,
-            request.PlantCount);
-
-        if (addResult.IsFailure)
+        var plantGroup = new PlantGroup
         {
-            return Result<Guid>.Failure(addResult.Error);
-        }
+            Id = Guid.NewGuid(),
+            ExperimentId = experiment!.Id,
+            Name = request.Name.Trim(),
+            Species = request.Species.Trim(),
+            PlantCount = request.PlantCount
+        };
+
+        experiment.PlantGroups.Add(plantGroup);
+        experiment.RaiseDomainEvent(new PlantGroupAddedDomainEvent(
+            experiment.Id,
+            plantGroup.Id,
+            plantGroup.Name,
+            plantGroup.Species,
+            plantGroup.PlantCount));
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result<Guid>.Success(addResult.Value!.Id);
+        return Result<Guid>.Success(plantGroup.Id);
     }
 }

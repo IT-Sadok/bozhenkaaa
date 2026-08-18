@@ -1,11 +1,14 @@
 using Experiments.Application.IntegrationEvents;
+using Experiments.Application.Interfaces;
 using Experiments.Application.Interfaces.Messaging;
 using Experiments.Domain.Events;
 using MediatR;
 
 namespace Experiments.Application.EventHandlers;
 
-internal sealed class ExperimentConfiguredDomainEventHandler(IIntegrationEventPublisher publisher)
+internal sealed class ExperimentConfiguredDomainEventHandler(
+    IIntegrationEventPublisher publisher,
+    IDateTimeProvider dateTime)
     : INotificationHandler<ExperimentConfiguredDomainEvent>
 {
     public async Task Handle(ExperimentConfiguredDomainEvent notification, CancellationToken cancellationToken)
@@ -18,7 +21,7 @@ internal sealed class ExperimentConfiguredDomainEventHandler(IIntegrationEventPu
             config.WateringIntervalDays,
             config.TargetTemperatureCelsius,
             config.Notes,
-            DateTime.UtcNow);
+            dateTime.UtcNow);
 
         await publisher.PublishAsync(integrationEvent, cancellationToken);
     }

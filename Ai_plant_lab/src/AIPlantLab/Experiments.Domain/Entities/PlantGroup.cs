@@ -4,29 +4,13 @@ namespace Experiments.Domain.Entities;
 
 public sealed class PlantGroup : Entity
 {
-    public Guid Id { get; private init; }
+    public Guid Id { get; set; }
 
-    public Guid ExperimentId { get; private init; }
+    public Guid ExperimentId { get; set; }
 
-    public string Name { get; private init; } = null!;
+    public string Name { get; set; } = null!;
 
-    public string Species { get; private init; } = null!;
+    public string Species { get; set; } = null!;
 
-    public int PlantCount { get; private init; }
-
-    private PlantGroup()
-    {
-    }
-
-    internal static PlantGroup Create(Guid experimentId, string name, string species, int plantCount)
-    {
-        return new PlantGroup
-        {
-            Id = Guid.NewGuid(),
-            ExperimentId = experimentId,
-            Name = name.Trim(),
-            Species = species.Trim(),
-            PlantCount = plantCount
-        };
-    }
+    public int PlantCount { get; set; }
 }

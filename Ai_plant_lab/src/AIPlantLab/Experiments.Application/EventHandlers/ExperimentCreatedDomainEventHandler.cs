@@ -1,11 +1,14 @@
 using Experiments.Application.IntegrationEvents;
+using Experiments.Application.Interfaces;
 using Experiments.Application.Interfaces.Messaging;
 using Experiments.Domain.Events;
 using MediatR;
 
 namespace Experiments.Application.EventHandlers;
 
-internal sealed class ExperimentCreatedDomainEventHandler(IIntegrationEventPublisher publisher)
+internal sealed class ExperimentCreatedDomainEventHandler(
+    IIntegrationEventPublisher publisher,
+    IDateTimeProvider dateTime)
     : INotificationHandler<ExperimentCreatedDomainEvent>
 {
     public async Task Handle(ExperimentCreatedDomainEvent notification, CancellationToken cancellationToken)
@@ -14,7 +17,7 @@ internal sealed class ExperimentCreatedDomainEventHandler(IIntegrationEventPubli
             notification.ExperimentId,
             notification.Name,
             notification.Description,
-            DateTime.UtcNow);
+            dateTime.UtcNow);
 
         await publisher.PublishAsync(integrationEvent, cancellationToken);
     }

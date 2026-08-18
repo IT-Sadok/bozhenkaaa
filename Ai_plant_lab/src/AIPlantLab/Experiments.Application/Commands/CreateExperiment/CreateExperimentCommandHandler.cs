@@ -1,24 +1,43 @@
+using Experiments.Application.Interfaces;
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Common;
-using Experiments.Domain.Services;
+using Experiments.Domain.Entities;
+using Experiments.Domain.Enums;
+using Experiments.Domain.Events;
+using FluentValidation;
 using MediatR;
 
 namespace Experiments.Application.Commands.CreateExperiment;
 
 internal sealed class CreateExperimentCommandHandler(
+    IValidator<CreateExperimentCommand> validator,
     IUnitOfWork unitOfWork,
-    IExperimentService experimentService)
+    IDateTimeProvider dateTime)
     : IRequestHandler<CreateExperimentCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateExperimentCommand request, CancellationToken cancellationToken)
     {
-        var createResult = experimentService.Create(request.Name, request.Description);
-        if (createResult.IsFailure)
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
         {
-            return Result<Guid>.Failure(createResult.Error);
+            var error = validation.Errors[0];
+            return Result<Guid>.Failure(error.ErrorMessage, error.CustomState as string);
         }
 
-        var experiment = createResult.Value!;
+        var experiment = new Experiment
+        {
+            Id = Guid.NewGuid(),
+            Name = request.Name.Trim(),
+            Description = request.Description?.Trim(),
+            Status = ExperimentStatus.Draft,
+            CreatedAt = dateTime.UtcNow
+        };
+
+        experiment.RaiseDomainEvent(new ExperimentCreatedDomainEvent(
+            experiment.Id,
+            experiment.Name,
+            experiment.Description));
+
         unitOfWork.Experiments.Add(experiment);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
