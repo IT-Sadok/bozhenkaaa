@@ -1,5 +1,6 @@
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Domain.Common;
+using Experiments.Domain.Constants;
 using Experiments.Domain.Entities;
 using Experiments.Domain.Enums;
 using Experiments.Domain.Events;
@@ -16,16 +17,21 @@ internal sealed class ConfigureExperimentCommandHandler(
 {
     public async Task<Result> Handle(ConfigureExperimentCommand request, CancellationToken cancellationToken)
     {
-        var experiment = await unitOfWork.Experiments.GetByIdAsync(request.ExperimentId, cancellationToken);
-
-        var context = new ValidationContext<ConfigureExperimentCommand>(request);
-        context.RootContextData[nameof(Experiment)] = experiment;
-
-        var validation = await validator.ValidateAsync(context, cancellationToken);
+        var validation = await validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
         {
-            var error = validation.Errors[0];
-            return Result.Failure(error.ErrorMessage, error.CustomState as string);
+            return Result.Failure(validation.Errors.Select(e => e.ErrorMessage));
+        }
+
+        var experiment = await unitOfWork.Experiments.GetByIdAsync(request.ExperimentId, cancellationToken);
+        if (experiment is null)
+        {
+            return Result.Failure(ValidationMessages.NotFound, nameof(Experiment));
+        }
+
+        if (experiment.Status != ExperimentStatus.Draft)
+        {
+            return Result.Failure("Experiment can only be configured while in Draft status.");
         }
 
         var configuration = new ExperimentConfiguration(
@@ -34,7 +40,7 @@ internal sealed class ConfigureExperimentCommandHandler(
             request.Configuration.TargetTemperatureCelsius,
             request.Configuration.Notes);
 
-        experiment!.Configuration = configuration;
+        experiment.Configuration = configuration;
         experiment.Status = ExperimentStatus.Configured;
         experiment.RaiseDomainEvent(new ExperimentConfiguredDomainEvent(experiment.Id, configuration));
 

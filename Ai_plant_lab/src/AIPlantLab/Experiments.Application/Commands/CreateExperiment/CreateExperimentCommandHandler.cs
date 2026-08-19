@@ -20,8 +20,7 @@ internal sealed class CreateExperimentCommandHandler(
         var validation = await validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
         {
-            var error = validation.Errors[0];
-            return Result<Guid>.Failure(error.ErrorMessage, error.CustomState as string);
+            return Result<Guid>.Failure(validation.Errors.Select(e => e.ErrorMessage));
         }
 
         var experiment = new Experiment
