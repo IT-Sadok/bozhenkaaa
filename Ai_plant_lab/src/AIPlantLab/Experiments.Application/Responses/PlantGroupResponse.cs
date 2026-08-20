@@ -1,6 +1,6 @@
-namespace Experiments.Application.DTOs;
+namespace Experiments.Application.Responses;
 
-public sealed class PlantGroupDto
+public sealed class PlantGroupResponse
 {
     public Guid Id { get; init; }
 

@@ -6,11 +6,11 @@ internal sealed class ConfigureExperimentCommandValidator : AbstractValidator<Co
 {
     public ConfigureExperimentCommandValidator()
     {
-        RuleFor(x => x.Configuration.LightHoursPerDay)
+        RuleFor(x => x.LightHoursPerDay)
             .GreaterThan(0)
             .WithMessage("Light hours per day must be greater than zero.");
 
-        RuleFor(x => x.Configuration.WateringIntervalDays)
+        RuleFor(x => x.WateringIntervalDays)
             .GreaterThan(0)
             .WithMessage("Watering interval must be greater than zero.");
     }

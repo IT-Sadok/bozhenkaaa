@@ -23,7 +23,7 @@ public static class DependencyInjection
         });
 
         var rabbitMqSettings = configuration.GetSection(RabbitMqSettings.SectionName).Get<RabbitMqSettings>()
-            ?? new RabbitMqSettings();
+            ?? throw new InvalidOperationException($"Configuration section '{RabbitMqSettings.SectionName}' is missing.");
 
         services.AddMassTransit(x =>
         {

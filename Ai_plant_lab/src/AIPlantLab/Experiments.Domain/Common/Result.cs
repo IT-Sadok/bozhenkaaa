@@ -1,5 +1,10 @@
 namespace Experiments.Domain.Common;
 
+internal static class ResultConstants
+{
+    public const string ErrorSeparator = "; ";
+}
+
 public class Result
 {
     public bool IsSuccess { get; }
@@ -30,7 +35,7 @@ public class Result
     public static Result Failure(string message, string? source = null) => new(false, message, source);
 
     public static Result Failure(IEnumerable<string> errors, string? source = null) =>
-        Failure(string.Join("; ", errors), source);
+        Failure(string.Join(ResultConstants.ErrorSeparator, errors), source);
 }
 
 public class Result<T>
@@ -67,5 +72,5 @@ public class Result<T>
         new(false, default, message, source);
 
     public static Result<T> Failure(IEnumerable<string> errors, string? source = null) =>
-        Failure(string.Join("; ", errors), source);
+        Failure(string.Join(ResultConstants.ErrorSeparator, errors), source);
 }

@@ -6,7 +6,7 @@ using Experiments.Application.Commands.CreateExperiment;
 using Experiments.Application.Commands.FinishExperiment;
 using Experiments.Application.Commands.StartExperiment;
 using Experiments.Application.Common;
-using Experiments.Application.DTOs;
+using Experiments.Application.Responses;
 using Experiments.Application.Queries.GetExperimentById;
 using Experiments.Application.Queries.ListExperiments;
 using MediatR;
@@ -59,13 +59,13 @@ public static class ExperimentEndpoints
             .WithOpenApi();
 
         group.MapGet("/{id:guid}", GetExperimentByIdAsync)
-            .Produces<ExperimentDto>()
+            .Produces<ExperimentResponse>()
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetExperimentById")
             .WithOpenApi();
 
         group.MapGet("/", ListExperimentsAsync)
-            .Produces<PagedResult<ExperimentSummaryDto>>()
+            .Produces<PagedResult<ExperimentSummaryResponse>>()
             .Produces(StatusCodes.Status400BadRequest)
             .WithName("ListExperiments")
             .WithOpenApi();
@@ -90,15 +90,12 @@ public static class ExperimentEndpoints
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var configuration = new ExperimentConfigurationDto
-        {
-            LightHoursPerDay = request.LightHoursPerDay,
-            WateringIntervalDays = request.WateringIntervalDays,
-            TargetTemperatureCelsius = request.TargetTemperatureCelsius,
-            Notes = request.Notes
-        };
-
-        var command = new ConfigureExperimentCommand(id, configuration);
+        var command = new ConfigureExperimentCommand(
+            id,
+            request.LightHoursPerDay,
+            request.WateringIntervalDays,
+            request.TargetTemperatureCelsius,
+            request.Notes);
         var result = await sender.Send(command, cancellationToken);
 
         return result.MapResult();

@@ -35,10 +35,10 @@ internal sealed class ConfigureExperimentCommandHandler(
         }
 
         var configuration = new ExperimentConfiguration(
-            request.Configuration.LightHoursPerDay,
-            request.Configuration.WateringIntervalDays,
-            request.Configuration.TargetTemperatureCelsius,
-            request.Configuration.Notes);
+            request.LightHoursPerDay,
+            request.WateringIntervalDays,
+            request.TargetTemperatureCelsius,
+            request.Notes);
 
         experiment.Configuration = configuration;
         experiment.Status = ExperimentStatus.Configured;

@@ -1,6 +1,6 @@
-namespace Experiments.Application.DTOs;
+namespace Experiments.Application.Responses;
 
-public sealed class ExperimentConfigurationDto
+public sealed class ExperimentConfigurationResponse
 {
     public decimal LightHoursPerDay { get; init; }
 

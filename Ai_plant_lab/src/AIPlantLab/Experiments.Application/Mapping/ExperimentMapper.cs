@@ -1,4 +1,4 @@
-using Experiments.Application.DTOs;
+using Experiments.Application.Responses;
 using Experiments.Domain.Entities;
 using Experiments.Domain.ValueObjects;
 
@@ -6,9 +6,9 @@ namespace Experiments.Application.Mapping;
 
 internal static class ExperimentMapper
 {
-    public static ExperimentDto MapToDto(Experiment experiment)
+    public static ExperimentResponse MapToResponse(Experiment experiment)
     {
-        return new ExperimentDto
+        return new ExperimentResponse
         {
             Id = experiment.Id,
             Name = experiment.Name,
@@ -16,17 +16,17 @@ internal static class ExperimentMapper
             Status = experiment.Status.ToString(),
             Configuration = experiment.Configuration is null
                 ? null
-                : MapToConfigurationDto(experiment.Configuration),
+                : MapToConfigurationResponse(experiment.Configuration),
             CreatedAt = experiment.CreatedAt,
             StartedAt = experiment.StartedAt,
             FinishedAt = experiment.FinishedAt,
-            PlantGroups = experiment.PlantGroups.Select(MapToPlantGroupDto).ToList()
+            PlantGroups = experiment.PlantGroups.Select(MapToPlantGroupResponse).ToList()
         };
     }
 
-    public static ExperimentSummaryDto MapToSummaryDto(Experiment experiment)
+    public static ExperimentSummaryResponse MapToSummaryResponse(Experiment experiment)
     {
-        return new ExperimentSummaryDto
+        return new ExperimentSummaryResponse
         {
             Id = experiment.Id,
             Name = experiment.Name,
@@ -36,9 +36,9 @@ internal static class ExperimentMapper
         };
     }
 
-    private static ExperimentConfigurationDto MapToConfigurationDto(ExperimentConfiguration configuration)
+    private static ExperimentConfigurationResponse MapToConfigurationResponse(ExperimentConfiguration configuration)
     {
-        return new ExperimentConfigurationDto
+        return new ExperimentConfigurationResponse
         {
             LightHoursPerDay = configuration.LightHoursPerDay,
             WateringIntervalDays = configuration.WateringIntervalDays,
@@ -47,9 +47,9 @@ internal static class ExperimentMapper
         };
     }
 
-    private static PlantGroupDto MapToPlantGroupDto(PlantGroup plantGroup)
+    private static PlantGroupResponse MapToPlantGroupResponse(PlantGroup plantGroup)
     {
-        return new PlantGroupDto
+        return new PlantGroupResponse
         {
             Id = plantGroup.Id,
             Name = plantGroup.Name,
