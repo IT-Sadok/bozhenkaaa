@@ -1,0 +1,9 @@
+using Experiments.Application.Common;
+using Experiments.Application.Responses;
+using Experiments.Domain.Common;
+using MediatR;
+
+namespace Experiments.Application.Queries.ListExperiments;
+
+public sealed record ListExperimentsQuery(int Page = 1, int PageSize = 20)
+    : IRequest<Result<PagedResult<ExperimentSummaryResponse>>>;
