@@ -1,9 +1,11 @@
+using AIAnalysis.Application.Interfaces.Messaging;
 using AIAnalysis.Application.Interfaces.Repositories;
 using AIAnalysis.Application.Interfaces.Services;
 using AIAnalysis.Infrastructure.AI;
+using AIAnalysis.Infrastructure.Messaging;
 using AIAnalysis.Infrastructure.Persistence;
-using AIAnalysis.Infrastructure.Persistence.Interceptors;
 using AIAnalysis.Infrastructure.Persistence.Repositories;
+using AIPlantLab.Contracts;
 using Azure;
 using Azure.AI.OpenAI;
 using MassTransit;
@@ -19,8 +21,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        var connectionString = configuration.GetConnectionString(ConnectionStringNames.DefaultConnection)
+            ?? throw new InvalidOperationException($"Connection string '{ConnectionStringNames.DefaultConnection}' not found.");
 
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseVector(); 
@@ -47,8 +49,10 @@ public static class DependencyInjection
             {
                 npgsqlOptions.UseVector();
             });
-            options.AddInterceptors(new DomainEventsPublishInterceptor());
         });
+
+        var transport = configuration[$"{ConfigurationSections.Messaging}:Transport"]
+            ?? MessagingTransports.RabbitMq;
 
         services.AddMassTransit(x =>
         {
@@ -60,16 +64,38 @@ public static class DependencyInjection
                 o.QueryDelay = TimeSpan.FromSeconds(10);
             });
 
-            x.UsingRabbitMq((context, cfg) =>
+            if (string.Equals(transport, MessagingTransports.ServiceBus, StringComparison.OrdinalIgnoreCase))
             {
-                cfg.Host("localhost", "/", h =>
+                x.UsingAzureServiceBus((context, cfg) =>
                 {
-                    h.Username("guest");
-                    h.Password("guest");
-                });
+                    cfg.Host(configuration.GetConnectionString(ConnectionStringNames.ServiceBus)
+                        ?? throw new InvalidOperationException($"Connection string '{ConnectionStringNames.ServiceBus}' not found."));
 
-                cfg.ConfigureEndpoints(context);
-            });
+                    cfg.UseRawJsonSerializer();
+
+                    cfg.Message<DiseaseDetectedIntegrationEvent>(m => m.SetEntityName(MessagingEntityNames.DiseaseDetected));
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
+            else
+            {
+                var rabbitMqSettings = configuration.GetSection(RabbitMqSettings.SectionName).Get<RabbitMqSettings>()
+                    ?? throw new InvalidOperationException($"Configuration section '{RabbitMqSettings.SectionName}' is missing.");
+
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    cfg.Host(rabbitMqSettings.Host, rabbitMqSettings.VirtualHost, h =>
+                    {
+                        h.Username(rabbitMqSettings.Username);
+                        h.Password(rabbitMqSettings.Password);
+                    });
+
+                    cfg.Message<DiseaseDetectedIntegrationEvent>(m => m.SetEntityName(MessagingEntityNames.DiseaseDetected));
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
         });
 
         var useMockAi = configuration.GetValue<bool>("UseMockAi");
@@ -86,6 +112,7 @@ public static class DependencyInjection
         services.AddScoped<IDiseaseRepository, DiseaseRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IIntegrationEventPublisher, IntegrationEventPublisher>();
 
         return services;
     }

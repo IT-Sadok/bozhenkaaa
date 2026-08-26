@@ -1,4 +1,4 @@
-using Experiments.Application.IntegrationEvents;
+using AIPlantLab.Contracts;
 using Experiments.Application.Interfaces;
 using Experiments.Application.Interfaces.Messaging;
 using Experiments.Domain.Events;
@@ -15,6 +15,7 @@ internal sealed class ExperimentFinishedDomainEventHandler(
     {
         var integrationEvent = new ExperimentFinishedIntegrationEvent(
             notification.ExperimentId,
+            notification.Name,
             notification.FinishedAt,
             dateTime.UtcNow);
 

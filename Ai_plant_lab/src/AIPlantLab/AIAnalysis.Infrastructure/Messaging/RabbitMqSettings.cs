@@ -1,6 +1,6 @@
 using AIPlantLab.Contracts;
 
-namespace Experiments.Infrastructure.Messaging;
+namespace AIAnalysis.Infrastructure.Messaging;
 
 public sealed class RabbitMqSettings
 {

@@ -1,3 +1,4 @@
+using AIPlantLab.Contracts;
 using Experiments.Application.Interfaces.Messaging;
 using Experiments.Application.Interfaces.Repositories;
 using Experiments.Infrastructure.Messaging;
@@ -14,16 +15,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        var connectionString = configuration.GetConnectionString(ConnectionStringNames.DefaultConnection)
+            ?? throw new InvalidOperationException($"Connection string '{ConnectionStringNames.DefaultConnection}' not found.");
 
         services.AddDbContext<AppDbContext>(options =>
         {
             options.UseNpgsql(connectionString);
         });
 
-        var rabbitMqSettings = configuration.GetSection(RabbitMqSettings.SectionName).Get<RabbitMqSettings>()
-            ?? throw new InvalidOperationException($"Configuration section '{RabbitMqSettings.SectionName}' is missing.");
+        var transport = configuration[$"{ConfigurationSections.Messaging}:Transport"]
+            ?? MessagingTransports.RabbitMq;
 
         services.AddMassTransit(x =>
         {
@@ -34,16 +35,38 @@ public static class DependencyInjection
                 o.QueryDelay = TimeSpan.FromSeconds(10);
             });
 
-            x.UsingRabbitMq((context, cfg) =>
+            if (string.Equals(transport, MessagingTransports.ServiceBus, StringComparison.OrdinalIgnoreCase))
             {
-                cfg.Host(rabbitMqSettings.Host, rabbitMqSettings.VirtualHost, h =>
+                x.UsingAzureServiceBus((context, cfg) =>
                 {
-                    h.Username(rabbitMqSettings.Username);
-                    h.Password(rabbitMqSettings.Password);
-                });
+                    cfg.Host(configuration.GetConnectionString(ConnectionStringNames.ServiceBus)
+                        ?? throw new InvalidOperationException($"Connection string '{ConnectionStringNames.ServiceBus}' not found."));
 
-                cfg.ConfigureEndpoints(context);
-            });
+                    cfg.UseRawJsonSerializer();
+
+                    cfg.Message<ExperimentFinishedIntegrationEvent>(m => m.SetEntityName(MessagingEntityNames.ExperimentFinished));
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
+            else
+            {
+                var rabbitMqSettings = configuration.GetSection(RabbitMqSettings.SectionName).Get<RabbitMqSettings>()
+                    ?? throw new InvalidOperationException($"Configuration section '{RabbitMqSettings.SectionName}' is missing.");
+
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    cfg.Host(rabbitMqSettings.Host, rabbitMqSettings.VirtualHost, h =>
+                    {
+                        h.Username(rabbitMqSettings.Username);
+                        h.Password(rabbitMqSettings.Password);
+                    });
+
+                    cfg.Message<ExperimentFinishedIntegrationEvent>(m => m.SetEntityName(MessagingEntityNames.ExperimentFinished));
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
         });
 
         services.AddScoped<IExperimentRepository, ExperimentRepository>();

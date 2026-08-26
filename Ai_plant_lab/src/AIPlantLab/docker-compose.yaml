@@ -40,6 +40,14 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
 
+  smtp4dev:
+    image: rnwood/smtp4dev:3.5.0
+    container_name: ai_smtp4dev
+    ports:
+      - "8080:80"
+      - "2525:25"
+    restart: unless-stopped
+
 volumes:
   ai_pgdata:
   experiments_pgdata:
