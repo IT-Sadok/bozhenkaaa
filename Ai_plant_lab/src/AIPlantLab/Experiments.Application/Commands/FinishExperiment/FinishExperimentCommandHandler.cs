@@ -30,7 +30,7 @@ internal sealed class FinishExperimentCommandHandler(
         var finishedAt = dateTime.UtcNow;
         experiment.Status = ExperimentStatus.Finished;
         experiment.FinishedAt = finishedAt;
-        experiment.RaiseDomainEvent(new ExperimentFinishedDomainEvent(experiment.Id, finishedAt));
+        experiment.RaiseDomainEvent(new ExperimentFinishedDomainEvent(experiment.Id, experiment.Name, finishedAt));
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

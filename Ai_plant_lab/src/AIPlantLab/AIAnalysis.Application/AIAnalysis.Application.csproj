@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\AIPlantLab.Contracts\AIPlantLab.Contracts.csproj" />
       <ProjectReference Include="..\AIAnalysis.Domain\AIAnalysis.Domain.csproj" />
     </ItemGroup>
 

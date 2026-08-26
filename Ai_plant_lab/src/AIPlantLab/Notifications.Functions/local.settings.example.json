@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "Messaging__Transport": "RabbitMQ",
+    "ServiceBus": "",
+    "RabbitMQ__Host": "localhost",
+    "RabbitMQ__VirtualHost": "/",
+    "RabbitMQ__Username": "guest",
+    "RabbitMQ__Password": "guest",
+    "Notifications__Email__Host": "localhost",
+    "Notifications__Email__Port": "2525",
+    "Notifications__Email__From": "ai-plant-lab@localhost",
+    "Notifications__Email__To": "you@example.com",
+    "Notifications__Telegram__BotToken": "",
+    "Notifications__Telegram__ChatId": ""
+  }
+}

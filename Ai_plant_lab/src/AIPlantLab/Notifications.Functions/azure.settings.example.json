@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AzureWebJobsStorage": "",
+    "ServiceBus": "",
+    "Messaging__Transport": "ServiceBus",
+    "Notifications__Telegram__BotToken": "",
+    "Notifications__Telegram__ChatId": "",
+    "Notifications__Email__Host": "",
+    "Notifications__Email__Port": "587",
+    "Notifications__Email__From": "",
+    "Notifications__Email__To": ""
+  }
+}
